@@ -1,7 +1,9 @@
 package $entity.PackageName;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.sql.Statement;
@@ -26,16 +28,20 @@ public class $entity.DaoName implements EntityDAO<$entity.Name> {
 
     @Override
     public void createTable() {
-        // Start with CREATE TABLE and the primary key definition
         String sql = "CREATE TABLE IF NOT EXISTS \"${entity.TableName}\" ("
+                // Use the potentially adjusted SqlType and explicitly add PRIMARY KEY
                 + "\"${entity.IdColumn.ColumnName}\" ${entity.IdColumn.SqlType} PRIMARY KEY";
 
-        // Append the other columns
         #foreach($column in $entity.DataColumns)
-            sql += ", \"${column.ColumnName}\" ${column.SqlType}";## Append comma, column name, and type directly
+            // --- START Foreign Key Handling ---
+            #if($column.JavaType == "Department" || $column.JavaType == "Person")
+                // Assuming FKs are BIGINT, adjust if needed.
+                sql += ", \"${column.FieldName}\" BIGINT";
+            #else
+                // --- END Foreign Key Handling ---
+                sql += ", \"${column.ColumnName}\" ${column.SqlType}";
+            #end
         #end
-
-        // Append the closing parenthesis after the loop
         sql += ")";
 
         try (java.sql.Statement statement = connection.createStatement()) {
@@ -47,22 +53,334 @@ public class $entity.DaoName implements EntityDAO<$entity.Name> {
 
     @Override
     public Optional<$entity.Name> get(long id) {
-        // TODO: Implement select by id
-        return Optional.empty();
+        // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName" WHERE "idCol" = ?
+        String sql = "SELECT ";
+        #set($firstCol = true) ## Flag for first column
+        #foreach($column in $entity.AllColumns) ## Use AllColumns to include ID
+            #if($firstCol)
+                sql += "\"${column.ColumnName}\""; ## Append first column name directly
+                #set($firstCol = false) ## Mark that first column is done
+            #else
+                sql += ", \"${column.ColumnName}\""; ## Append comma THEN column name
+            #end
+        #end
+        sql += " FROM \"${entity.TableName}\" WHERE \"${entity.IdColumn.ColumnName}\" = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            // Set the ID parameter (assuming ID is long)
+            statement.setLong(1, id);
+
+            try (java.sql.ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // Row found, map it to an entity object
+                    $entity.Name entity = new ${entity.Name}();
+
+                    // Map ID column
+                    entity.${entity.IdColumn.SetterName}(rs.getLong("${entity.IdColumn.ColumnName}"));
+
+                    // Map data columns
+                    #foreach($column in $entity.DataColumns)
+                        // --- START Foreign Key Handling ---
+                        #if($column.JavaType == "Department" || $column.JavaType == "Person") ## Add other entity types if needed
+                            // Define the FK column name based on convention
+                            #set($fkColName = "${column.FieldName}")
+                            // Get the foreign key ID from the result set
+                            long relatedId = rs.getLong("$fkColName");
+                            // Check if the ID is valid (not 0 and not SQL NULL)
+                            if (relatedId > 0 && !rs.wasNull()) {
+                                // Get the DAO for the related entity type
+                                var relatedDAO = this.daoPersistenceManager.getDAO(${column.JavaType}.class);
+                                // Fetch the related entity using its DAO
+                                Optional<${column.JavaType}> relatedEntityOpt = relatedDAO.get(relatedId);
+                                // Set the related entity on the current entity if found
+                                relatedEntityOpt.ifPresent(relatedEntity -> entity.${column.SetterName}(relatedEntity));
+                                // If not found (Optional is empty), the field remains null (default)
+                            }
+                        #else
+                            // --- END Foreign Key Handling ---
+                            #if($column.JavaType == "String")
+                                entity.${column.SetterName}(rs.getString("${column.ColumnName}"));
+                            #elseif($column.JavaType == "int" || $column.JavaType == "Integer")
+                                entity.${column.SetterName}(rs.getInt("${column.ColumnName}"));
+                            #elseif($column.JavaType == "long" || $column.JavaType == "Long")
+                                entity.${column.SetterName}(rs.getLong("${column.ColumnName}"));
+                            #elseif($column.JavaType == "boolean" || $column.JavaType == "Boolean")
+                                entity.${column.SetterName}(rs.getInt("${column.ColumnName}") == 1);
+                            #elseif($column.JavaType == "double" || $column.JavaType == "Double")
+                                entity.${column.SetterName}(rs.getDouble("${column.ColumnName}"));
+                            #else
+                                // Log or throw error for unhandled types if necessary
+                                System.err.println("Warning: Unhandled type '$column.JavaType' during mapping in get() for column '$column.ColumnName'. Field will be null.");
+                            #end
+                        #end
+                    #end
+
+                    return Optional.of(entity);
+                } else {
+                    // No row found with that ID
+                    return Optional.empty();
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to get $entity.Name with ID " + id, e);
+        }
     }
 
     @Override
     public List<$entity.Name> getAll() {
-        // TODO: implement SELECT ALL
-        return List.of();
+        List<${entity.Name}> entities = new ArrayList<>(); // Initialize the list to store results
+        // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName"
+        String sql = "SELECT ";
+        #set($firstCol = true) ## Flag for first column
+        #foreach($column in $entity.AllColumns) ## Use AllColumns to include ID
+            #if($firstCol)
+                sql += "\"${column.ColumnName}\""; ## Append first column name directly
+                #set($firstCol = false) ## Mark that first column is done
+            #else
+                sql += ", \"${column.ColumnName}\""; ## Append comma THEN column name
+            #end
+        #end
+        sql += " FROM \"${entity.TableName}\"";
+
+        // Use a simple Statement as there are no parameters
+        try (Statement statement = connection.createStatement();
+             java.sql.ResultSet rs = statement.executeQuery(sql)) { // Execute the query
+
+            while (rs.next()) { // Iterate through all rows in the result set
+                // For each row, map it to an entity object
+                ${entity.Name} entity = new ${entity.Name}(); // Assumes no-arg constructor
+
+                // Map ID column
+                entity.${entity.IdColumn.SetterName}(rs.getLong("${entity.IdColumn.ColumnName}"));
+
+                // Map data columns
+                #foreach($column in $entity.DataColumns)
+                    // --- START Foreign Key Handling ---
+                    #if($column.JavaType == "Department" || $column.JavaType == "Person") ## Add other entity types if needed
+                        // Define the FK column name based on convention
+                        #set($fkColName = "${column.FieldName}")
+                        // Get the foreign key ID from the result set
+                        long relatedId = rs.getLong("$fkColName");
+                        // Check if the ID is valid (not 0 and not SQL NULL)
+                        if (relatedId > 0 && !rs.wasNull()) {
+                            // Get the DAO for the related entity type
+                            var relatedDAO = this.daoPersistenceManager.getDAO(${column.JavaType}.class);
+                            // Fetch the related entity using its DAO
+                            Optional<${column.JavaType}> relatedEntityOpt = relatedDAO.get(relatedId);
+                            // Set the related entity on the current entity if found
+                            relatedEntityOpt.ifPresent(relatedEntity -> entity.${column.SetterName}(relatedEntity));
+                            // If not found (Optional is empty), the field remains null (default)
+                        }
+                    #else
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                        #if($column.JavaType == "String")
+                            entity.${column.SetterName}(rs.getString("${column.ColumnName}"));
+                        #elseif($column.JavaType == "int" || $column.JavaType == "Integer")
+                            entity.${column.SetterName}(rs.getInt("${column.ColumnName}"));
+                        #elseif($column.JavaType == "long" || $column.JavaType == "Long")
+                            entity.${column.SetterName}(rs.getLong("${column.ColumnName}"));
+                        #elseif($column.JavaType == "boolean" || $column.JavaType == "Boolean")
+                            entity.${column.SetterName}(rs.getInt("${column.ColumnName}") == 1);
+                        #elseif($column.JavaType == "double" || $column.JavaType == "Double")
+                            entity.${column.SetterName}(rs.getDouble("${column.ColumnName}"));
+                        #else
+                            // Log or throw error for unhandled types if necessary
+                            System.err.println("Warning: Unhandled type '$column.JavaType' during mapping in getAll() for column '$column.ColumnName'. Field will be null.");
+                        #end
+                    #end ## End of outer #if($column.isEntityType)
+                #end ## End of #foreach
+
+                entities.add(entity); // Add the populated entity to the list
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to get all instances of $entity.Name", e);
+        }
+        // Add catch for ClassNotFoundException if using Class.forName in the default case above
+        // catch (ClassNotFoundException e) {
+        //     throw new PersistenceException("Failed to load class for mapping in getAll method", e);
+        // }
+
+        return entities;
     }
 
     @Override
     public void save(Object obj) {
         $entity.Name entity = ($entity.Name) obj;
-        // TODO: implement insert and update
-        // check if entity.getID is 0 or null --> insert, otherwise update
-        // retrieve and set generated id after insert
+        String sql;
+
+        // Check if the entity is new (ID is 0 or default) or existing
+        if (entity.${entity.IdColumn.GetterName}() == 0) {
+            // --- INSERT ---
+            // Build SQL: INSERT INTO "TableName" ("col1", "col2") VALUES (?, ?)
+            sql = "INSERT INTO \"${entity.TableName}\" (";
+            #set($firstCol = true)## Flag for first column
+            #foreach($column in $entity.DataColumns)
+                #if($firstCol)
+                    sql += "\"${column.ColumnName}\"";## Append first column name directly
+                    #set($firstCol = false)## Mark that first column is done
+                #else
+                    sql += ", \"${column.ColumnName}\"";## Append comma THEN column name
+                #end
+            #end
+            sql += ") VALUES (";
+            #set($firstVal = true)## Flag for first placeholder
+            #foreach($column in $entity.DataColumns)
+                #if($firstVal)
+                    sql += "?";## Append first placeholder directly
+                    #set($firstVal = false)## Mark that first placeholder is done
+                #else
+                    sql += ", ?";## Append comma THEN placeholder
+                #end
+            #end
+            sql += ")";
+
+            try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                // Set parameters using data columns
+                int index = 1;
+                #foreach($column in $entity.DataColumns)
+                    // --- START Foreign Key Handling ---
+                    #if($column.JavaType == "Department" || $column.JavaType == "Person") ## Add other entity types if needed
+                        // Handle relationship field
+                        Object relatedEntity = entity.${column.GetterName}();
+                        if (relatedEntity == null) {
+                            // Set the FK column to NULL. Adjust SQL type if FK isn't BIGINT.
+                            statement.setNull(index++, java.sql.Types.BIGINT);
+                        } else {
+                            long relatedId;
+                            #if($column.JavaType == "Department")
+                                relatedId = (($column.JavaType) relatedEntity).getId();
+                            #elseif($column.JavaType == "Person")
+                                relatedId = (($column.JavaType) relatedEntity).getId();
+                            #else
+                                relatedId = 0;
+                            #end
+
+                            statement.setLong(index++, relatedId);
+                        }
+                    #else
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field (existing logic)
+                        #if($column.JavaType == "String")
+                            statement.setString(index++, entity.${column.GetterName}());
+                        #elseif($column.JavaType == "int" || $column.JavaType == "Integer")
+                            statement.setInt(index++, entity.${column.GetterName}());
+                        #elseif($column.JavaType == "long" || $column.JavaType == "Long")
+                            statement.setLong(index++, entity.${column.GetterName}());
+                            // Add more type mappings here (e.g., boolean, double, Date)
+                        #else ## Default or fallback
+                            statement.setObject(index++, entity.${column.GetterName}());
+                        #end
+                    #end ## End of outer #if($column.isEntityType)
+                #end ## End of #foreach
+                int affectedRows = statement.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new PersistenceException("Creating entity failed, no rows affected.");
+                }
+
+                // Retrieve and set the generated ID
+##                try (java.sql.ResultSet generatedKeys = statement.getGeneratedKeys()) { ## Use FQDN for ResultSet
+##                    if (generatedKeys.next()) {
+##                        entity.${entity.IdColumn.SetterName}(generatedKeys.getLong(1));
+##                    } else {
+##                        throw new PersistenceException("Creating entity failed, no ID obtained.");
+##                    }
+##                }
+                // Retrieve and set the generated ID
+                try (java.sql.ResultSet generatedKeys = statement.getGeneratedKeys()) { ## Use FQDN for ResultSet
+                    if (generatedKeys.next()) {
+                        long generatedId = generatedKeys.getLong(1);
+                        //System.out.println(">>> DAO: Generated ID for ${entity.Name}: " + generatedId);
+                        // Assuming ID is long. Adjust if type is different.
+                        entity.${entity.IdColumn.SetterName}(generatedId); // Use the retrieved value
+                        //System.out.println(">>> DAO: ID in entity object AFTER set for ${entity.Name}: " + entity.${entity.IdColumn.GetterName}());
+                    } else {
+                        //System.out.println(">>> DAO: No generated ID obtained for ${entity.Name}."); // Temporary logging
+                        // ------------------------
+                        throw new PersistenceException("Creating entity failed, no ID obtained.");
+                    }
+                }
+
+            } catch (SQLException e) {
+                throw new PersistenceException("Failed to save (insert) entity: " + entity, e);
+            }
+            // --- End INSERT ---
+        } else {
+            // --- UPDATE ---
+            // Build SQL: UPDATE "TableName" SET "col1" = ?, "col2" = ? WHERE "idCol" = ?
+            sql = "UPDATE \"${entity.TableName}\" SET ";
+            #set($firstSet = true)## Flag for first setter part
+            #foreach($column in $entity.DataColumns)
+                // --- START Foreign Key Handling ---
+                #set($colNameToUse = $column.ColumnName) ## Default to original column name
+                #if($column.JavaType == "Department" || $column.JavaType == "Person") ## Add other entity types if needed
+                    // Use the foreign key column name convention
+                    #set($colNameToUse = "${column.FieldName}")
+                #end
+                // --- END Foreign Key Handling ---
+
+                #if($firstSet)
+                    sql += "\"${colNameToUse}\" = ?";## Append first setter directly
+                    #set($firstSet = false)## Mark that first setter is done
+                #else
+                    sql += ", \"${colNameToUse}\" = ?";## Append comma THEN setter
+                #end
+            #end
+            sql += " WHERE \"${entity.IdColumn.ColumnName}\" = ?";
+
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                // Set parameters for data columns
+                int index = 1;
+                #foreach($column in $entity.DataColumns)
+                    // --- START Foreign Key Handling ---
+                    #if($column.JavaType == "Department" || $column.JavaType == "Person") ## might need some refinement if there are other classes
+                        // Handle relationship field
+                        Object relatedEntity = entity.${column.GetterName}();
+                        if (relatedEntity == null) {
+                            statement.setNull(index++, java.sql.Types.BIGINT);
+                        } else {
+                            // Get the ID from the related entity.
+                            long relatedId;
+                            #if($column.JavaType == "Department")
+                                relatedId = (($column.JavaType) relatedEntity).getId();
+                            #elseif($column.JavaType == "Person")
+                                relatedId = (($column.JavaType) relatedEntity).getId();
+                            #else
+                                relatedId = 0;
+                            #end
+                            statement.setLong(index++, relatedId);
+                        }
+                    #else
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                        #if($column.JavaType == "String")
+                            statement.setString(index++, entity.${column.GetterName}());
+                        #elseif($column.JavaType == "int" || $column.JavaType == "Integer")
+                            statement.setInt(index++, entity.${column.GetterName}());
+                        #elseif($column.JavaType == "long" || $column.JavaType == "Long")
+                            statement.setLong(index++, entity.${column.GetterName}());
+                            // Add more type mappings here
+                        #else ## Default or fallback
+                            statement.setObject(index++, entity.${column.GetterName}());
+                        #end
+                    #end ## End of outer #if($column.isEntityType)
+                #end ## End of #foreach
+
+                // Set the ID parameter for the WHERE clause (remains the same)
+                statement.setLong(index, entity.${entity.IdColumn.GetterName}());
+
+                int affectedRows = statement.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new PersistenceException("Updating entity failed, no rows affected (ID " + entity.${entity.IdColumn.GetterName}() + " might not exist).");
+                }
+
+            } catch (SQLException e) {
+                throw new PersistenceException("Failed to save (update) entity: " + entity, e);
+            }
+            // --- End UPDATE ---
+        }
     }
 
     @Override

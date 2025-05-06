@@ -1,0 +1,9 @@
+-classpath
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/persistence/build/classes/java/main:/home/katherine/.gradle/caches/modules-2/files-2.1/org.aspectj/aspectjrt/1.9.23/c0e773bf8c0955e12cafc133bc566da98c90e9be/aspectjrt-1.9.23.jar:/home/katherine/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.0.0/b759e513adadb7c7e600b709fb7df3ac560276bd/sqlite-jdbc-3.49.0.0.jar:/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/annotations/build/classes/java/main
+-d
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/aspects/build/classes/aspectj/main
+-target
+17
+-source
+17
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/aspects/src/main/java/sk/tuke/meta/persistence/annotations/Main.java

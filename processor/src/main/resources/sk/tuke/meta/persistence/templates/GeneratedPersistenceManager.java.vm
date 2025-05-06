@@ -1,4 +1,4 @@
-package sk.tuke.meta.persistence;
+package sk.tuke.meta.persistence.templates;
 
 import java.sql.Connection;
 

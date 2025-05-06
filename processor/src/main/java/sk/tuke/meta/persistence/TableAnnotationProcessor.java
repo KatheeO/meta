@@ -62,7 +62,7 @@ public class TableAnnotationProcessor extends AbstractProcessor {
                 continue; // Skip if not a class/interface
             }
 
-            TypeElement typeElement = (TypeElement) element; // Cast to TypeElement
+            TypeElement typeElement = (TypeElement) element;
             String entityName = typeElement.getSimpleName().toString();
             // Use getQualifiedName for the full package + class name, then extract package
             String qualifiedName = typeElement.getQualifiedName().toString();
@@ -72,7 +72,7 @@ public class TableAnnotationProcessor extends AbstractProcessor {
 
             // Iterate through enclosed elements (fields, methods...)
             for (Element enclosedElement : typeElement.getEnclosedElements()) {
-                // We are interested only in fields
+                // We only want fields
                 if (enclosedElement.getKind() == ElementKind.FIELD) {
                     VariableElement fieldElement = (VariableElement) enclosedElement;
 
@@ -85,11 +85,9 @@ public class TableAnnotationProcessor extends AbstractProcessor {
                         String columnName = (columnAnnotation != null && !columnAnnotation.name().isEmpty())
                                 ? columnAnnotation.name()
                                 : fieldName;
-                        // Get the field type
                         TypeMirror fieldTypeMirror = fieldElement.asType();
                         String fieldJavaType = fieldTypeMirror.toString();
-                        // Extract simple type name if needed (e.g., "String" from "java.lang.String")
-                        // This might need refinement based on the template
+                        // Extract simple type name
                         if (fieldJavaType.contains(".")) {
                             fieldJavaType = fieldJavaType.substring(fieldJavaType.lastIndexOf('.') + 1);
                         }
@@ -101,7 +99,6 @@ public class TableAnnotationProcessor extends AbstractProcessor {
                 }
             }
 
-            // Basic validation: Check if an ID column was found
             try {
                 entityStructure.getIdColumn(); // This will throw if no ID was found
                 entities.add(entityStructure);

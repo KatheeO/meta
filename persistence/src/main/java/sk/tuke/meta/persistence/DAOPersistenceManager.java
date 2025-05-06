@@ -1,5 +1,7 @@
 package sk.tuke.meta.persistence;
 
+import sk.tuke.meta.persistence.annotations.AtomicPersistenceOperation;
+
 import java.sql.Connection;
 import java.util.LinkedHashMap;
 import java.util.List;
