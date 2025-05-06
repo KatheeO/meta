@@ -1,7 +1,9 @@
 package sk.tuke.meta.example;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.sql.Statement;
@@ -23,13 +25,16 @@ public class DepartmentDAO implements EntityDAO<Department> {
 
     @Override
     public void createTable() {
-        // Start with CREATE TABLE and the primary key definition
         String sql = "CREATE TABLE IF NOT EXISTS \"Department\" ("
-                + "\"id\" BIGINT PRIMARY KEY";
+                // Use the potentially adjusted SqlType and explicitly add PRIMARY KEY
+                + "\"id\" INTEGER PRIMARY KEY";
 
-        // Append the other columns
-            sql += ", \"name\" VARCHAR(255)";            sql += ", \"code\" VARCHAR(255)";
-        // Append the closing parenthesis after the loop
+            // --- START Foreign Key Handling ---
+                // --- END Foreign Key Handling ---
+                sql += ", \"name\" VARCHAR(255)";
+            // --- START Foreign Key Handling ---
+                // --- END Foreign Key Handling ---
+                sql += ", \"code\" VARCHAR(255)";
         sql += ")";
 
         try (java.sql.Statement statement = connection.createStatement()) {
@@ -41,22 +46,169 @@ public class DepartmentDAO implements EntityDAO<Department> {
 
     @Override
     public Optional<Department> get(long id) {
-        // TODO: Implement select by id
-        return Optional.empty();
+        // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName" WHERE "idCol" = ?
+        String sql = "SELECT ";
+                  sql += "\"id\"";                   sql += ", \"name\"";                  sql += ", \"code\"";         sql += " FROM \"Department\" WHERE \"id\" = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            // Set the ID parameter (assuming ID is long)
+            statement.setLong(1, id);
+
+            try (java.sql.ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    // Row found, map it to an entity object
+                    Department entity = new Department();
+
+                    // Map ID column
+                    entity.setId(rs.getLong("id"));
+
+                    // Map data columns
+                        // --- START Foreign Key Handling ---
+                            // --- END Foreign Key Handling ---
+                                entity.setName(rs.getString("name"));
+                        // --- START Foreign Key Handling ---
+                            // --- END Foreign Key Handling ---
+                                entity.setCode(rs.getString("code"));
+
+                    return Optional.of(entity);
+                } else {
+                    // No row found with that ID
+                    return Optional.empty();
+                }
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to get Department with ID " + id, e);
+        }
     }
 
     @Override
     public List<Department> getAll() {
-        // TODO: implement SELECT ALL
-        return List.of();
+        List<Department> entities = new ArrayList<>(); // Initialize the list to store results
+        // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName"
+        String sql = "SELECT ";
+                  sql += "\"id\"";                   sql += ", \"name\"";                  sql += ", \"code\"";         sql += " FROM \"Department\"";
+
+        // Use a simple Statement as there are no parameters
+        try (Statement statement = connection.createStatement();
+             java.sql.ResultSet rs = statement.executeQuery(sql)) { // Execute the query
+
+            while (rs.next()) { // Iterate through all rows in the result set
+                // For each row, map it to an entity object
+                Department entity = new Department(); // Assumes no-arg constructor
+
+                // Map ID column
+                entity.setId(rs.getLong("id"));
+
+                // Map data columns
+                    // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                            entity.setName(rs.getString("name"));
+                     // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                            entity.setCode(rs.getString("code"));
+  
+                entities.add(entity); // Add the populated entity to the list
+            }
+        } catch (SQLException e) {
+            throw new PersistenceException("Failed to get all instances of Department", e);
+        }
+        // Add catch for ClassNotFoundException if using Class.forName in the default case above
+        // catch (ClassNotFoundException e) {
+        //     throw new PersistenceException("Failed to load class for mapping in getAll method", e);
+        // }
+
+        return entities;
     }
 
     @Override
     public void save(Object obj) {
         Department entity = (Department) obj;
-        // TODO: implement insert and update
-        // check if entity.getID is 0 or null --> insert, otherwise update
-        // retrieve and set generated id after insert
+        String sql;
+
+        // Check if the entity is new (ID is 0 or default) or existing
+        if (entity.getId() == 0) {
+            // --- INSERT ---
+            // Build SQL: INSERT INTO "TableName" ("col1", "col2") VALUES (?, ?)
+            sql = "INSERT INTO \"Department\" (";
+                    sql += "\"name\"";                    sql += ", \"code\"";            sql += ") VALUES (";
+                    sql += "?";                    sql += ", ?";            sql += ")";
+
+            try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                // Set parameters using data columns
+                int index = 1;
+                    // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field (existing logic)
+                            statement.setString(index++, entity.getName());
+                     // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field (existing logic)
+                            statement.setString(index++, entity.getCode());
+                  int affectedRows = statement.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new PersistenceException("Creating entity failed, no rows affected.");
+                }
+
+                // Retrieve and set the generated ID
+                // Retrieve and set the generated ID
+                try (java.sql.ResultSet generatedKeys = statement.getGeneratedKeys()) {                     if (generatedKeys.next()) {
+                        long generatedId = generatedKeys.getLong(1);
+                        //System.out.println(">>> DAO: Generated ID for Department: " + generatedId);
+                        // Assuming ID is long. Adjust if type is different.
+                        entity.setId(generatedId); // Use the retrieved value
+                        //System.out.println(">>> DAO: ID in entity object AFTER set for Department: " + entity.getId());
+                    } else {
+                        //System.out.println(">>> DAO: No generated ID obtained for Department."); // Temporary logging
+                        // ------------------------
+                        throw new PersistenceException("Creating entity failed, no ID obtained.");
+                    }
+                }
+
+            } catch (SQLException e) {
+                throw new PersistenceException("Failed to save (insert) entity: " + entity, e);
+            }
+            // --- End INSERT ---
+        } else {
+            // --- UPDATE ---
+            // Build SQL: UPDATE "TableName" SET "col1" = ?, "col2" = ? WHERE "idCol" = ?
+            sql = "UPDATE \"Department\" SET ";
+                // --- START Foreign Key Handling ---
+                 // --- END Foreign Key Handling ---
+
+                    sql += "\"name\" = ?";                // --- START Foreign Key Handling ---
+                 // --- END Foreign Key Handling ---
+
+                    sql += ", \"code\" = ?";            sql += " WHERE \"id\" = ?";
+
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                // Set parameters for data columns
+                int index = 1;
+                    // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                            statement.setString(index++, entity.getName());
+                     // --- START Foreign Key Handling ---
+                        // --- END Foreign Key Handling ---
+                        // Handle regular data field
+                            statement.setString(index++, entity.getCode());
+  
+                // Set the ID parameter for the WHERE clause (remains the same)
+                statement.setLong(index, entity.getId());
+
+                int affectedRows = statement.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new PersistenceException("Updating entity failed, no rows affected (ID " + entity.getId() + " might not exist).");
+                }
+
+            } catch (SQLException e) {
+                throw new PersistenceException("Failed to save (update) entity: " + entity, e);
+            }
+            // --- End UPDATE ---
+        }
     }
 
     @Override

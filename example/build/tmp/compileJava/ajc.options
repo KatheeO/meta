@@ -1,0 +1,12 @@
+-inpath
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/example/build/classes/java/main
+-aspectpath
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/aspects/build/libs/aspects-1.0-SNAPSHOT.jar:/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/persistence/build/libs/persistence-1.0-SNAPSHOT.jar:/home/katherine/.gradle/caches/modules-2/files-2.1/org.aspectj/aspectjrt/1.9.23/c0e773bf8c0955e12cafc133bc566da98c90e9be/aspectjrt-1.9.23.jar:/home/katherine/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.0.0/b759e513adadb7c7e600b709fb7df3ac560276bd/sqlite-jdbc-3.49.0.0.jar:/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/annotations/build/libs/annotations-1.0-SNAPSHOT.jar
+-classpath
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/aspects/build/classes/aspectj/main:/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/persistence/build/classes/java/main:/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/annotations/build/classes/java/main:/home/katherine/.gradle/caches/modules-2/files-2.1/org.aspectj/aspectjrt/1.9.23/c0e773bf8c0955e12cafc133bc566da98c90e9be/aspectjrt-1.9.23.jar:/home/katherine/.gradle/caches/modules-2/files-2.1/org.xerial/sqlite-jdbc/3.49.0.0/b759e513adadb7c7e600b709fb7df3ac560276bd/sqlite-jdbc-3.49.0.0.jar
+-d
+/home/katherine/Desktop/Metaprogramovanie/assignment.katarina.snirerova/example/build/classes/java/main
+-target
+17
+-source
+17

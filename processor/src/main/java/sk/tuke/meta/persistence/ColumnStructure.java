@@ -38,17 +38,22 @@ public class ColumnStructure {
         return isId;
     }
 
-    // Helper function to get SQL type, based on Java type, add more later if needed
+    // Helper function to get SQL type
     public String getSqlType() {
-        switch (javaType){
-            case "String":
-                return "VARCHAR(255)";
-            case "int", "Integer":
-                return "INTEGER";
-            case "long", "Long":
-                return "BIGINT";
-            default:
-                return "VARCHAR(255)";
+        // Special handling for auto-increment PK
+        if (this.isId && (javaType.equals("long") || javaType.equals("Long") || javaType.equals("int") || javaType.equals("Integer"))) {
+            return "INTEGER"; // The PK part is added in the DAO template
         }
+
+        // Handle other types
+        return switch (javaType) {
+            case "String" -> "VARCHAR(255)";
+            case "int", "Integer" -> "INTEGER";
+            case "long", "Long" -> "BIGINT";
+            case "boolean", "Boolean" -> "INTEGER";
+            case "double", "Double", "float", "Float" -> "REAL";
+            case "Date", "LocalDate", "LocalDateTime" -> "TEXT";
+            default -> "TEXT";
+        };
     }
 }

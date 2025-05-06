@@ -12,8 +12,7 @@ import java.util.Optional;
 public class Main {
     public static final String DB_PATH = "test.db";
 
-    public static void main(String[] args) { // Removed "throws Exception" for more specific handling
-        // Use try-with-resources for automatic connection closing
+    public static void main(String[] args) {
         try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + DB_PATH)) {
 
             PersistenceManager manager = new GeneratedPersistenceManager(conn);
@@ -59,8 +58,7 @@ public class Main {
         } else {
             for (Person person : persons) {
                 System.out.println("Found person: " + person);
-                // Depending on your implementation, the department might be eagerly or lazily loaded.
-                // Accessing it here might trigger another DB query if lazy.
+
                 if (person.getDepartment() != null) {
                     System.out.println("  Department: " + person.getDepartment());
                 } else {
@@ -75,7 +73,6 @@ public class Main {
         Optional<Department> anotherDepartment = manager.get(Department.class, nonExistentId);
         System.out.println("Department with ID " + nonExistentId + " exists: " + anotherDepartment.isPresent());
 
-        // Example: Retrieve the saved department by its ID (assuming ID 1 if it's the first one)
         if (development.getId() != 0) { // Check if ID was set after save
             System.out.println("\nAttempting to retrieve Department with ID: " + development.getId());
             Optional<Department> retrievedDev = manager.get(Department.class, development.getId());

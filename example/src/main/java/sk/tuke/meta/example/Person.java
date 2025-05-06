@@ -15,6 +15,7 @@ public class Person {
     @Column
     private int age;
 
+    @Column
     private Department department;
 
     public Person() {
@@ -28,6 +29,10 @@ public class Person {
 
     public long getId() {
         return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public String getSurname() {
