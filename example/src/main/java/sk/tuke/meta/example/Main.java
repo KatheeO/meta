@@ -1,6 +1,6 @@
 package sk.tuke.meta.example;
 
-import sk.tuke.meta.persistence.GeneratedPersistenceManager;
+import sk.tuke.meta.persistence.templates.GeneratedPersistenceManager;
 import sk.tuke.meta.persistence.PersistenceManager;
 
 import java.sql.Connection;

@@ -11,6 +11,7 @@ import java.sql.Statement;
 import sk.tuke.meta.persistence.DAOPersistenceManager;
 import sk.tuke.meta.persistence.EntityDAO;
 import sk.tuke.meta.persistence.PersistenceException;
+import sk.tuke.meta.persistence.annotations.AtomicPersistenceOperation;
 
 // Add import for entity if not in example package
 

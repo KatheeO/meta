@@ -1,6 +1,8 @@
-package sk.tuke.meta.persistence;
+package sk.tuke.meta.persistence.templates;
 
 import java.sql.Connection;
+import sk.tuke.meta.persistence.DAOPersistenceManager;
+
 
 import sk.tuke.meta.example.Department;
 import sk.tuke.meta.example.DepartmentDAO;
