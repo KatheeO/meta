@@ -14,6 +14,8 @@ import sk.tuke.meta.persistence.PersistenceException;
 import sk.tuke.meta.persistence.annotations.AtomicPersistenceOperation;
 
 // Add import for entity if not in example package
+// This ensures that if the entity is in *either* of those common example packages, the explicit import isn't generated (as it would be redundant).
+
 
 public class DepartmentDAO implements EntityDAO<Department> {
     private Connection connection;
@@ -49,7 +51,16 @@ public class DepartmentDAO implements EntityDAO<Department> {
     public Optional<Department> get(long id) {
         // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName" WHERE "idCol" = ?
         String sql = "SELECT ";
-                  sql += "\"id\"";                   sql += ", \"name\"";                  sql += ", \"code\"";         sql += " FROM \"Department\" WHERE \"id\" = ?";
+   // Default for ID and regular columns
+
+                                sql += "\"id\"";
+   // Default for ID and regular columns
+
+                                sql += ", \"name\"";
+  // Default for ID and regular columns
+
+                                sql += ", \"code\"";
+        sql += " FROM \"Department\" WHERE \"id\" = ?";
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             // Set the ID parameter (assuming ID is long)
@@ -65,10 +76,10 @@ public class DepartmentDAO implements EntityDAO<Department> {
 
                     // Map data columns
                         // --- START Foreign Key Handling ---
-                            // --- END Foreign Key Handling ---
+                                                    // --- END Foreign Key Handling ---
                                 entity.setName(rs.getString("name"));
                         // --- START Foreign Key Handling ---
-                            // --- END Foreign Key Handling ---
+                                                    // --- END Foreign Key Handling ---
                                 entity.setCode(rs.getString("code"));
 
                     return Optional.of(entity);
@@ -87,26 +98,26 @@ public class DepartmentDAO implements EntityDAO<Department> {
         List<Department> entities = new ArrayList<>(); // Initialize the list to store results
         // Build SQL: SELECT "col1", "col2", ... "idCol" FROM "TableName"
         String sql = "SELECT ";
-                  sql += "\"id\"";                   sql += ", \"name\"";                  sql += ", \"code\"";         sql += " FROM \"Department\"";
+   // Default for ID and regular columns
 
-        // Use a simple Statement as there are no parameters
-        try (Statement statement = connection.createStatement();
-             java.sql.ResultSet rs = statement.executeQuery(sql)) { // Execute the query
+                sql += "\"id\"";    // Default for ID and regular columns
 
-            while (rs.next()) { // Iterate through all rows in the result set
-                // For each row, map it to an entity object
-                Department entity = new Department(); // Assumes no-arg constructor
+                sql += ", \"name\"";   // Default for ID and regular columns
 
-                // Map ID column
-                entity.setId(rs.getLong("id"));
+                sql += ", \"code\"";         sql += " FROM \"Department\"";
 
-                // Map data columns
-                    // --- START Foreign Key Handling ---
-                        // --- END Foreign Key Handling ---
+                try (Statement statement = connection.createStatement();
+             java.sql.ResultSet rs = statement.executeQuery(sql)) {
+
+            while (rs.next()) {                                 Department entity = new Department(); 
+                                entity.setId(rs.getLong("id"));
+
+                                    // --- START Foreign Key Handling ---
+                                            // --- END Foreign Key Handling ---
                         // Handle regular data field
                             entity.setName(rs.getString("name"));
                      // --- START Foreign Key Handling ---
-                        // --- END Foreign Key Handling ---
+                                            // --- END Foreign Key Handling ---
                         // Handle regular data field
                             entity.setCode(rs.getString("code"));
   
@@ -115,11 +126,7 @@ public class DepartmentDAO implements EntityDAO<Department> {
         } catch (SQLException e) {
             throw new PersistenceException("Failed to get all instances of Department", e);
         }
-        // Add catch for ClassNotFoundException if using Class.forName in the default case above
-        // catch (ClassNotFoundException e) {
-        //     throw new PersistenceException("Failed to load class for mapping in getAll method", e);
-        // }
-
+                                
         return entities;
     }
 
@@ -133,18 +140,20 @@ public class DepartmentDAO implements EntityDAO<Department> {
             // --- INSERT ---
             // Build SQL: INSERT INTO "TableName" ("col1", "col2") VALUES (?, ?)
             sql = "INSERT INTO \"Department\" (";
-                    sql += "\"name\"";                    sql += ", \"code\"";            sql += ") VALUES (";
-                    sql += "?";                    sql += ", ?";            sql += ")";
+
+                    sql += "\"name\"";
+
+                    sql += ", \"code\"";
+                    
+            sql += ") VALUES (?, ?)";
+
 
             try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                // Set parameters using data columns
-                int index = 1;
-                    // --- START Foreign Key Handling ---
-                        // --- END Foreign Key Handling ---
+                                int index = 1;
+                                            // --- END Foreign Key Handling ---
                         // Handle regular data field (existing logic)
                             statement.setString(index++, entity.getName());
-                     // --- START Foreign Key Handling ---
-                        // --- END Foreign Key Handling ---
+                                             // --- END Foreign Key Handling ---
                         // Handle regular data field (existing logic)
                             statement.setString(index++, entity.getCode());
                   int affectedRows = statement.executeUpdate();
@@ -154,16 +163,9 @@ public class DepartmentDAO implements EntityDAO<Department> {
                 }
 
                 // Retrieve and set the generated ID
-                // Retrieve and set the generated ID
                 try (java.sql.ResultSet generatedKeys = statement.getGeneratedKeys()) {                     if (generatedKeys.next()) {
-                        long generatedId = generatedKeys.getLong(1);
-                        //System.out.println(">>> DAO: Generated ID for Department: " + generatedId);
-                        // Assuming ID is long. Adjust if type is different.
-                        entity.setId(generatedId); // Use the retrieved value
-                        //System.out.println(">>> DAO: ID in entity object AFTER set for Department: " + entity.getId());
+                        entity.setId(generatedKeys.getLong(1));
                     } else {
-                        //System.out.println(">>> DAO: No generated ID obtained for Department."); // Temporary logging
-                        // ------------------------
                         throw new PersistenceException("Creating entity failed, no ID obtained.");
                     }
                 }
@@ -176,12 +178,8 @@ public class DepartmentDAO implements EntityDAO<Department> {
             // --- UPDATE ---
             // Build SQL: UPDATE "TableName" SET "col1" = ?, "col2" = ? WHERE "idCol" = ?
             sql = "UPDATE \"Department\" SET ";
-                // --- START Foreign Key Handling ---
-                 // --- END Foreign Key Handling ---
-
-                    sql += "\"name\" = ?";                // --- START Foreign Key Handling ---
-                 // --- END Foreign Key Handling ---
-
+                                
+                    sql += "\"name\" = ?";                                
                     sql += ", \"code\" = ?";            sql += " WHERE \"id\" = ?";
 
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -202,7 +200,8 @@ public class DepartmentDAO implements EntityDAO<Department> {
                 int affectedRows = statement.executeUpdate();
 
                 if (affectedRows == 0) {
-                    throw new PersistenceException("Updating entity failed, no rows affected (ID " + entity.getId() + " might not exist).");
+                    System.err.println("Warning: Update for " + entity.getName() + " with ID " + entity.getId() + " affected 0 rows.");
+                    //throw new PersistenceException("Updating entity failed, no rows affected (ID " + entity.getId() + " might not exist).");
                 }
 
             } catch (SQLException e) {
@@ -218,12 +217,13 @@ public class DepartmentDAO implements EntityDAO<Department> {
         if (entity.getId() == 0){
             throw new PersistenceException("Cannot delete entity with no ID: " + entity);
         }
-        try {
-            var statement = connection.prepareStatement(
-                    "delete from \"Department\" where id=?");
+        // In delete, we only care about the ID column, which is not an entity reference itself
+        String sql = "DELETE FROM \"Department\" WHERE \"id\" = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)){
             // Set the correct type based on IdColumn.JavaType (assuming long for now)
             statement.setLong(1, entity.getId());
-            statement.execute();
+            //statement.execute();
+            statement.executeUpdate();
         } catch (SQLException e) {
             throw new PersistenceException("Cannot delete Department with ID " + entity.getId(), e);
         }

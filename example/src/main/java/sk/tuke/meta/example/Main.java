@@ -1,11 +1,11 @@
 package sk.tuke.meta.example;
 
-import sk.tuke.meta.persistence.templates.GeneratedPersistenceManager;
+import sk.tuke.meta.persistence.GeneratedPersistenceManager;
 import sk.tuke.meta.persistence.PersistenceManager;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException; // Import SQLException
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 

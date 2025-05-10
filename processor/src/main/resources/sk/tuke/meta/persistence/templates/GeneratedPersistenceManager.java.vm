@@ -1,4 +1,4 @@
-package sk.tuke.meta.persistence.templates;
+package sk.tuke.meta.persistence;
 
 import java.sql.Connection;
 import sk.tuke.meta.persistence.DAOPersistenceManager;
